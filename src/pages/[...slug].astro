@@ -1,24 +1,28 @@
 ---
-import { getCollection } from "astro:content";
+import { getEntryBySlug } from "astro:content";
 import FrontLayout from "../layouts/FrontLayout.astro";
 
-export const prerender = true;
+// For static output
+// export async function getStaticPaths() {
+//   const pageEntries = await getCollection("pages");
 
-export async function getStaticPaths() {
-  const pageEntries = await getCollection("pages");
+//   return pageEntries.map((entry) => ({
+//     params: { slug: entry.slug },
+//     props: { entry },
+//   }));
+// }
 
-  return pageEntries.map((entry) => ({
-    params: { slug: entry.slug },
-    props: { entry },
-  }));
-}
+// For dynamic output
+const { slug } = Astro.params;
+if(!slug) return Astro.redirect("/404");
 
-const { entry } = Astro.props;
+const entry = await getEntryBySlug("pages", slug);
+if(!entry) return Astro.redirect("/404");
 
 const { Content } = await entry.render();
 ---
 
-<FrontLayout frontmatter={entry.data}>
-  <h1>{entry.data.title}</h1>
+<FrontLayout title={entry.data.title}>
+  <h2>{entry.data.title}</h2>
   <Content />
 </FrontLayout>

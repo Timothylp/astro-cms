@@ -50,6 +50,7 @@ if (Astro.request.method === "POST") {
     <header>
       <a href="/admin/pages">← Retour</a>
       <h1>{title}</h1>
+      {!isCreate && <a href={`/${slug}/`}>Voir la page</a>}
     </header>
     <form method="post">
       <input type="text" id="title" name="title" placeholder="Titre de la page" value={page && page?.data.title} required />
