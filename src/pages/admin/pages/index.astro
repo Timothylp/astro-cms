@@ -1,0 +1,37 @@
+---
+import { getCollection } from "astro:content";
+import AdminLayout from "../../../layouts/AdminLayout.astro";
+const pageEntries = await getCollection("pages");
+---
+
+<AdminLayout>
+  <article>
+    <header>
+      <nav>
+        <h1>Pages</h1>
+        <ul><li><a href="/admin/pages/new" role="button">Créer une nouvelle page</a></li></ul>
+      </nav>
+    </header>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Titre</th>
+          <th>Etat</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          pageEntries.map((page) => (
+            <tr>
+              <td>
+                <a href={`/admin/pages/${page.slug}`}>{page.data.title}</a>
+              </td>
+              <td>{page.data.isDraft ? "Brouillon" : "Publié"}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </article>
+</AdminLayout>

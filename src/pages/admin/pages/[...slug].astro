@@ -1,0 +1,61 @@
+---
+import { getEntryBySlug } from "astro:content";
+import AdminLayout from "../../../layouts/AdminLayout.astro";
+import * as fs from "fs";
+
+const { slug } = Astro.params;
+if (!slug) return Astro.redirect("/admin");
+
+let isCreate = true;
+let title = "Création d'une page";
+let page = null;
+
+if (slug != "new") {
+  isCreate = false;
+  page = await getEntryBySlug("pages", slug);
+  if (!page) return Astro.redirect("/admin");
+  title = `Edition de la page ${page.data.title}`;
+}
+
+if (Astro.request.method === "POST") {
+  try {
+    const data = await Astro.request.formData();
+    const title = data.get("title") as string;
+    const content = data.get("content");
+
+    if (!title || !content) throw new Error("Veuillez remplir tous les champs");
+
+    let newSlug = slug;
+    if (isCreate) {
+      newSlug = title.toLowerCase().replace(/ /g, "-");
+      if (fs.existsSync(`src/content/pages/${slug}.mdx`)) throw new Error("Une page avec ce titre existe déjà");
+    }
+
+    const file = `src/content/pages/${newSlug}.mdx`;
+    const contentFile = `---\nisDraft: false\ntitle: ${title}\n---\n\n${content}`;
+
+    fs.writeFile(file, contentFile, function (err) {
+      if (err) throw err;
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error(error.message);
+    }
+  }
+} 
+---
+
+<AdminLayout>
+  <article>
+    <header>
+      <a href="/admin/pages">← Retour</a>
+      <h1>{title}</h1>
+    </header>
+    <form method="post">
+      <input type="text" id="title" name="title" placeholder="Titre de la page" value={page && page?.data.title} required />
+      {!isCreate && <small>slug : {slug}</small>}
+      <textarea id="content" name="content" placeholder="Contenu de la page" rows="12">{page && page.body}</textarea>
+      <button type="submit">Enregistrer</button>
+    </form>
+  </article>
+</AdminLayout>

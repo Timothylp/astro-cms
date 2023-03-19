@@ -10,6 +10,9 @@
     "astro": "astro"
   },
   "dependencies": {
-    "astro": "^2.0.18"
+    "@astrojs/mdx": "^0.18.1",
+    "@astrojs/node": "^5.1.0",
+    "@types/node": "^18.15.3",
+    "astro": "^2.1.3"
   }
 }

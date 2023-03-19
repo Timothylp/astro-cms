@@ -1,0 +1,24 @@
+---
+import { getCollection } from "astro:content";
+import FrontLayout from "../layouts/FrontLayout.astro";
+
+export const prerender = true;
+
+export async function getStaticPaths() {
+  const pageEntries = await getCollection("pages");
+
+  return pageEntries.map((entry) => ({
+    params: { slug: entry.slug },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+
+const { Content } = await entry.render();
+---
+
+<FrontLayout frontmatter={entry.data}>
+  <h1>{entry.data.title}</h1>
+  <Content />
+</FrontLayout>
