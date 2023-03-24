@@ -3,13 +3,15 @@ import Button from "./Button.astro";
 import SearchBar from "./SearchBar.astro";
 
 export interface Props {
+  label: string;
+  labelAdd: string;
   fields: {
     name: string;
     label: string;
   }[];
   items: {
     id: number;
-    slug: string;
+    slug?: string;
     fields: {
       name: string;
       value: string;
@@ -17,7 +19,7 @@ export interface Props {
   }[];
 }
 
-const { fields, items } = Astro.props;
+const { fields, items, labelAdd, label } = Astro.props;
 ---
 
 <section class="p-3 sm:p-5">
@@ -28,7 +30,7 @@ const { fields, items } = Astro.props;
       </div>
       <div
         class="flex w-full flex-shrink-0 flex-col items-stretch justify-end space-y-2 md:w-auto md:flex-row md:items-center md:space-y-0 md:space-x-3">
-        <Button title="Créer une nouvelle page" link="/admin/pages/new" type="add" />
+        <Button title={labelAdd} link={`/admin/${label}s/new`} type="add" />
       </div>
     </div>
     <div class="overflow-x-auto">
@@ -54,7 +56,7 @@ const { fields, items } = Astro.props;
                 {item.fields.map((field) =>
                   field.name === "title" ? (
                     <th scope="row" class="whitespace-nowrap px-4 py-3 font-medium text-gray-900 dark:text-white">
-                      <a href={`/admin/pages/${item.slug}`}>{field.value}</a>
+                      <a href={`/admin/${label}s/${item.id}`}>{field.value}</a>
                     </th>
                   ) : (
                     <td class="px-4 py-3">{field.value}</td>
@@ -74,26 +76,28 @@ const { fields, items } = Astro.props;
                     id={`${item.id}-dropdown`}
                     class="z-10 hidden w-44 divide-y divide-gray-100 rounded bg-white shadow dark:divide-gray-600 dark:bg-gray-700">
                     <ul class="py-1 text-sm text-gray-700 dark:text-gray-200" aria-labelledby="apple-imac-27-dropdown-button">
-                      <li>
-                        <a href={`/${item.slug}`} class="block py-2 px-4 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">
-                          Voir
-                        </a>
-                      </li>
+                      {item.slug ? (
+                        <li>
+                          <a href={`/${item.slug}`} class="block py-2 px-4 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">
+                            Voir
+                          </a>
+                        </li>
+                      ) : null}
                       <li>
                         <a
-                          href={`/admin/pages/${item.slug}`}
+                          href={`/admin/${label}s/${item.id}`}
                           class="block py-2 px-4 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">
                           Editer
                         </a>
                       </li>
                     </ul>
-                    {/*<div class="py-1">
+                    <div class="py-1">
                         <a
-                          href="#"
-                          class="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600 dark:hover:text-white">
+                          href={`/admin/${label}s/delete/${item.id}`}
+                          class="block py-2 px-4 text-sm text-red-700 hover:bg-red-100">
                           Supprimer
                         </a>
-                    </div>*/}
+                    </div>
                   </div>
                 </td>
               </tr>

@@ -1,25 +1,25 @@
 ---
 import Button from "../../../components/admin/Button.astro";
-import IconEye from "../../../components/admin/icons/IconEye.astro";
 import { prisma } from "../../../db";
 import AdminLayout from "../../../layouts/AdminLayout.astro";
 
-const { slug } = Astro.params;
-if (!slug) return Astro.redirect("/admin");
+const { id } = Astro.params;
+if (!id) return Astro.redirect("/admin/pages");
 
 let title = "Création d'une page";
 let page = null;
 
-if (slug != "new") {
-  page = await prisma.post.findFirst();
-  if (!page) return Astro.redirect("/admin");
+if (id != "new") {
+  page = await prisma.post.findUnique({ where: { 
+    id: parseInt(id)
+   }});
+  if (!page) return Astro.redirect("/admin/pages");
   title = `Edition de la page ${page.title}`;
 }
 
 if (Astro.request.method === "POST") {
   const data = await Astro.request.formData();
   const title = data.get("title") as string;
-  const content = data.get("content");
 
   if (!page) {
     await prisma.post.create({
@@ -43,12 +43,12 @@ if (Astro.request.method === "POST") {
 }
 ---
 
-<AdminLayout>
+<AdminLayout title={`${title}`}>
   <header class="p-3 sm:p-5">
     <p class="font-medium text-primary-600 dark:text-primary-500">← <a href="/admin/pages" class="hover:underline">Retour</a></p>
     <div class="flex items-center justify-between">
       <h1 class="mb-2 text-4xl font-bold tracking-tight text-gray-900 dark:text-white">{title}</h1>
-      {page && <Button title="Voir la page" link={`/${slug}/`} type="see" />}
+      {page && <Button title="Voir la page" link={`/${page.slug}/`} type="see" />}
     </div>
   </header>
   <section class="p-3 sm:p-5">
@@ -64,7 +64,7 @@ if (Astro.request.method === "POST") {
             value={page && page.title}
             required
           />
-          {page && <small class="mt-2 text-sm text-gray-500 dark:text-gray-400">slug : {slug}</small>}
+          {page && <small class="mt-2 text-sm text-gray-500 dark:text-gray-400">slug : {page.slug}</small>}
         </div>
         <Button title="Enregistrer" type="submit" />
       </form>

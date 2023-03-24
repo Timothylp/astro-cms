@@ -1,0 +1,196 @@
+---
+import Button from "../../../components/admin/Button.astro";
+import IconCross from "../../../components/admin/icons/IconCross.astro";
+import { prisma } from "../../../db";
+import AdminLayout from "../../../layouts/AdminLayout.astro";
+
+const { id } = Astro.params;
+if (!id) return Astro.redirect("/admin/sections");
+
+let title = "Création d'une section";
+let section = null;
+
+if (id != "new") {
+  section = await prisma.section.findUnique({
+    where: {
+      id: parseInt(id),
+    },
+  });
+  if (!section) return Astro.redirect("/admin/sections");
+  title = `Edition de la section ${section.title}`;
+}
+
+if (Astro.request.method === "POST") {
+  const data = await Astro.request.formData();
+  const title = data.get("title") as string;
+  console.log(fields);
+
+  if (!section) {
+    await prisma.section.create({
+      data: {
+        title,
+      },
+    });
+  } else {
+    await prisma.section.update({
+      where: {
+        id: section.id,
+      },
+      data: {
+        title,
+      },
+    });
+  }
+
+  return Astro.redirect("/admin/sections");
+}
+---
+
+<AdminLayout title={`${title}`}>
+  <header class="p-3 sm:p-5">
+    <p class="font-medium text-primary-600 dark:text-primary-500">← <a href="/admin/sections" class="hover:underline">Retour</a></p>
+    <div class="flex items-center justify-between">
+      <h1 class="mb-2 text-4xl font-bold tracking-tight text-gray-900 dark:text-white">{title}</h1>
+    </div>
+  </header>
+  <section class="p-3 sm:p-5">
+    <div class="relative overflow-hidden bg-white shadow-md dark:bg-gray-800 sm:rounded-lg">
+      <form class="p-4" method="post">
+        <div class="mb-6">
+          <input
+            class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2 text-2xl text-gray-900 focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:focus:border-primary-500 dark:focus:ring-primary-500"
+            type="text"
+            id="title"
+            name="title"
+            placeholder="Titre de la section"
+            value={section && section.title}
+            required
+          />
+        </div>
+        <div class="mb-6">
+          <label for="email" class="mb-2 block text-sm font-medium text-gray-900 dark:text-white">Liste des champs</label>
+          <div id="fields"></div>
+          <button
+            id="addField"
+            type="button"
+            class="flex w-full items-center justify-center border border-primary-600/20 bg-primary-400/10 p-2 text-primary-400 transition-all duration-300 ease-in-out hover:border-primary-600 hover:bg-primary-400/20 hover:text-primary-600"
+            ><div class="h-6 w-6"><IconCross /></div></button
+          >
+        </div>
+        <Button title="Enregistrer" type="submit" />
+      </form>
+    </div>
+  </section>
+
+  <script>
+    const fields = document.getElementById("fields");
+    const addField = document.getElementById("addField");
+
+    const addFieldToForm = () => {
+      const fieldContainer = document.createElement("div");
+      fieldContainer.classList.add("flex", "items-center", "mb-2", "gap-2");
+
+      const fieldKey = document.createElement("input");
+      fieldKey.classList.add(
+        "flex-1",
+        "rounded-lg",
+        "border",
+        "border-gray-300",
+        "bg-gray-50",
+        "p-2",
+        "text-lg",
+        "text-gray-900",
+        "focus:border-primary-500",
+        "focus:ring-primary-500",
+        "dark:border-gray-600",
+        "dark:bg-gray-700",
+        "dark:text-white",
+        "dark:placeholder-gray-400",
+        "dark:focus:border-primary-500",
+        "dark:focus:ring-primary-500"
+      );
+      fieldKey.setAttribute("type", "text");
+      fieldKey.setAttribute("name", "fields[" + fields?.children.length + "][key]");
+      fieldKey.setAttribute("placeholder", "Identifiant du champ");
+
+      const fieldInput = document.createElement("input");
+      fieldInput.classList.add(
+        "flex-1",
+        "rounded-lg",
+        "border",
+        "border-gray-300",
+        "bg-gray-50",
+        "p-2",
+        "text-lg",
+        "text-gray-900",
+        "focus:border-primary-500",
+        "focus:ring-primary-500",
+        "dark:border-gray-600",
+        "dark:bg-gray-700",
+        "dark:text-white",
+        "dark:placeholder-gray-400",
+        "dark:focus:border-primary-500",
+        "dark:focus:ring-primary-500",
+      );
+      fieldInput.setAttribute("type", "text");
+      fieldInput.setAttribute("name", "fields[" + fields?.children.length + "][name]");
+      fieldInput.setAttribute("placeholder", "Nom du champ");
+
+      const fieldType = document.createElement("select");
+      fieldType.classList.add(
+        "flex-1",
+        "rounded-lg",
+        "border",
+        "border-gray-300",
+        "bg-gray-50",
+        "p-2",
+        "text-lg",
+        "text-gray-900",
+        "focus:border-primary-500",
+        "focus:ring-primary-500",
+        "dark:border-gray-600",
+        "dark:bg-gray-700",
+        "dark:text-white",
+        "dark:placeholder-gray-400",
+        "dark:focus:border-primary-500",
+        "dark:focus:ring-primary-500"
+      );
+      fieldType.setAttribute("type", "text");
+      fieldType.setAttribute("name", "fields[" + fields?.children.length + "][type]");
+      fieldType.options.add(new Option("Texte", "text"));
+      fieldType.options.add(new Option("Paragraphe", "textarea"));
+
+      const fieldRemove = document.createElement("button");
+      fieldRemove.classList.add(
+        "flex",
+        "items-center",
+        "justify-center",
+        "border",
+        "border-red-600/20",
+        "bg-red-400/10",
+        "p-2",
+        "text-red-400",
+        "transition-all",
+        "duration-300",
+        "ease-in-out",
+        "hover:border-red-600",
+        "hover:bg-red-400/20",
+        "hover:text-red-600"
+      );
+      fieldRemove.innerHTML = '<div class="h-6 w-6"><IconCross /></div>';
+      fieldRemove.addEventListener("click", () => {
+        fieldContainer.remove();
+      });
+
+      fieldContainer.appendChild(fieldType);
+      fieldContainer.appendChild(fieldKey);
+      fieldContainer.appendChild(fieldInput);
+      fieldContainer.appendChild(fieldRemove);
+      fields?.appendChild(fieldContainer);
+    };
+
+    addField?.addEventListener("click", () => {
+      addFieldToForm();
+    });
+  </script>
+</AdminLayout>

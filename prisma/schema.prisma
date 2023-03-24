@@ -11,20 +11,61 @@ datasource db {
 }
 
 model Post {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        Int           @id @default(autoincrement())
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
   title     String
-  slug      String   @unique
-  content   String?
-  published Boolean  @default(false)
-  author    User?    @relation(fields: [authorId], references: [id])
+  slug      String        @unique
+  sections  PostSection[]
+  published Boolean       @default(false)
+  author    User?         @relation(fields: [authorId], references: [id])
   authorId  Int?
 }
 
+model PostSection {
+  id         Int          @id @default(autoincrement())
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  section    Section?     @relation(fields: [sectionId], references: [id])
+  sectionId  Int?
+  post       Post?        @relation(fields: [postId], references: [id])
+  postId     Int?
+  values FieldValue[]
+}
+
+model Section {
+  id        Int           @id @default(autoincrement())
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  title     String
+  fields    Field[]
+  posts     PostSection[]
+}
+
+model Field {
+  id         Int          @id @default(autoincrement())
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  title      String
+  type       String
+  sections   Section[]
+  values FieldValue[]
+}
+
+model FieldValue {
+  id        Int          @id @default(autoincrement())
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  value     String
+  field     Field?       @relation(fields: [fieldId], references: [id])
+  fieldId   Int?
+  post      PostSection? @relation(fields: [postSectionId], references: [id])
+  postSectionId    Int?
+}
+
 model User {
-  id      Int      @id @default(autoincrement())
-  email   String   @unique
-  name    String?
-  posts   Post[]
+  id    Int     @id @default(autoincrement())
+  email String  @unique
+  name  String?
+  posts Post[]
 }

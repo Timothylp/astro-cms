@@ -3,41 +3,35 @@ import { prisma } from "../../../db";
 import AdminLayout from "../../../layouts/AdminLayout.astro";
 import AdvancedTable from "../../../components/admin/AdvancedTable.astro";
 
-const pages = await prisma.post.findMany();
+const sections = await prisma.section.findMany();
 
 const fields = [
   { name: "title", label: "Titre" },
-  { name: "published", label: "Etat" },
   { name: "createdAt", label: "Créé le" },
   { name: "updatedAt", label: "Modifié le" },
 ];
 
-const items = pages.map((page) => {
+const items = sections.map((section) => {
   return {
-    id: page.id,
-    slug: page.slug,
+    id: section.id,
     fields: [
       {
         name: "title",
-        value: page.title,
-      },
-      {
-        name: "published",
-        value: page.published ? "Brouillon" : "Publié",
+        value: section.title,
       },
       {
         name: "createdAt",
-        value: page.createdAt.toLocaleString(),
+        value: section.createdAt.toLocaleString(),
       },
       {
         name: "updatedAt",
-        value: page.updatedAt.toLocaleString(),
+        value: section.updatedAt.toLocaleString(),
       },
     ],
   };
 });
 ---
 
-<AdminLayout title="Liste des pages">
-  <AdvancedTable fields={fields} items={items} labelAdd="Créer une nouvelle page" label="page" />
+<AdminLayout title="Liste des sections">
+  <AdvancedTable fields={fields} items={items} labelAdd="Crée une nouvelle section" label="section"  />
 </AdminLayout>

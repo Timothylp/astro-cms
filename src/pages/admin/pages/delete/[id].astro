@@ -1,0 +1,11 @@
+---
+import { prisma } from "../../../../db";
+const { id } = Astro.params;
+if (!id) return Astro.redirect("/admin/pages");
+
+await prisma.post.delete({
+  where: { id: parseInt(id) },
+});
+
+return Astro.redirect("/admin/pages");
+---
