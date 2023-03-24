@@ -1,62 +1,73 @@
 ---
-import { getEntryBySlug } from "astro:content";
+import Button from "../../../components/admin/Button.astro";
+import IconEye from "../../../components/admin/icons/IconEye.astro";
+import { prisma } from "../../../db";
 import AdminLayout from "../../../layouts/AdminLayout.astro";
-import * as fs from "fs";
 
 const { slug } = Astro.params;
 if (!slug) return Astro.redirect("/admin");
 
-let isCreate = true;
 let title = "Création d'une page";
 let page = null;
 
 if (slug != "new") {
-  isCreate = false;
-  page = await getEntryBySlug("pages", slug);
+  page = await prisma.post.findFirst();
   if (!page) return Astro.redirect("/admin");
-  title = `Edition de la page ${page.data.title}`;
+  title = `Edition de la page ${page.title}`;
 }
 
 if (Astro.request.method === "POST") {
-  try {
-    const data = await Astro.request.formData();
-    const title = data.get("title") as string;
-    const content = data.get("content");
+  const data = await Astro.request.formData();
+  const title = data.get("title") as string;
+  const content = data.get("content");
 
-    if (!title || !content) throw new Error("Veuillez remplir tous les champs");
-
-    let newSlug = slug;
-    if (isCreate) {
-      newSlug = title.toLowerCase().replace(/ /g, "-");
-      if (fs.existsSync(`src/content/pages/${slug}.mdx`)) throw new Error("Une page avec ce titre existe déjà");
-    }
-
-    const file = `src/content/pages/${newSlug}.mdx`;
-    const contentFile = `---\nisDraft: false\ntitle: ${title}\n---\n\n${content}`;
-
-    fs.writeFile(file, contentFile, function (err) {
-      if (err) throw err;
+  if (!page) {
+    await prisma.post.create({
+      data: {
+        title,
+        slug: title.toLowerCase().replace(/ /g, "-"),
+      },
     });
-  } catch (error) {
-    if (error instanceof Error) {
-      console.error(error.message);
-    }
+  } else {
+    await prisma.post.update({
+      where: {
+        id: page.id,
+      },
+      data: {
+        title,
+      },
+    });
   }
-} 
+
+  return Astro.redirect("/admin/pages");
+}
 ---
 
 <AdminLayout>
-  <article>
-    <header>
-      <a href="/admin/pages">← Retour</a>
-      <h1>{title}</h1>
-      {!isCreate && <a href={`/${slug}/`}>Voir la page</a>}
-    </header>
-    <form method="post">
-      <input type="text" id="title" name="title" placeholder="Titre de la page" value={page && page?.data.title} required />
-      {!isCreate && <small>slug : {slug}</small>}
-      <textarea id="content" name="content" placeholder="Contenu de la page" rows="12">{page && page.body}</textarea>
-      <button type="submit">Enregistrer</button>
-    </form>
-  </article>
+  <header class="p-3 sm:p-5">
+    <p class="font-medium text-primary-600 dark:text-primary-500">← <a href="/admin/pages" class="hover:underline">Retour</a></p>
+    <div class="flex items-center justify-between">
+      <h1 class="mb-2 text-4xl font-bold tracking-tight text-gray-900 dark:text-white">{title}</h1>
+      {page && <Button title="Voir la page" link={`/${slug}/`} type="see" />}
+    </div>
+  </header>
+  <section class="p-3 sm:p-5">
+    <div class="relative overflow-hidden bg-white shadow-md dark:bg-gray-800 sm:rounded-lg">
+      <form class="p-4" method="post">
+        <div class="mb-6">
+          <input
+            class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2 text-2xl text-gray-900 focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:focus:border-primary-500 dark:focus:ring-primary-500"
+            type="text"
+            id="title"
+            name="title"
+            placeholder="Titre de la page"
+            value={page && page.title}
+            required
+          />
+          {page && <small class="mt-2 text-sm text-gray-500 dark:text-gray-400">slug : {slug}</small>}
+        </div>
+        <Button title="Enregistrer" type="submit" />
+      </form>
+    </div>
+  </section>
 </AdminLayout>

@@ -1,5 +1,5 @@
 ---
-import { getEntryBySlug } from "astro:content";
+import { prisma } from "../db";
 import FrontLayout from "../layouts/FrontLayout.astro";
 
 // For static output
@@ -16,13 +16,10 @@ import FrontLayout from "../layouts/FrontLayout.astro";
 const { slug } = Astro.params;
 if(!slug) return Astro.redirect("/404");
 
-const entry = await getEntryBySlug("pages", slug);
-if(!entry) return Astro.redirect("/404");
-
-const { Content } = await entry.render();
+const page = await prisma.post.findUnique({ where: { slug } });
+if(!page) return Astro.redirect("/404");
 ---
 
-<FrontLayout title={entry.data.title}>
-  <h2>{entry.data.title}</h2>
-  <Content />
+<FrontLayout title={page.title}>
+  <h2>{page.title}</h2>
 </FrontLayout>

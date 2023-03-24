@@ -1,0 +1,32 @@
+---
+import IconCross from "./icons/IconCross.astro";
+import IconEye from "./icons/IconEye.astro";
+
+export interface Props {
+  title: string;
+  link?: string;
+  type: "add" | "see" | "submit";
+}
+
+const { title, link, type } = Astro.props;
+---
+
+{
+  link ? (
+    <a
+      href={link}
+      class="bg-primary-700 hover:bg-primary-800 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium text-white focus:outline-none focus:ring-4">
+      {type === "add" ? <IconCross /> : null}
+      {type === "see" ? <IconEye /> : null}
+      {title}
+    </a>
+  ) : (
+    <button
+      type={type === "submit" ? "submit" : "button"}
+      class="bg-primary-700 hover:bg-primary-800 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium text-white focus:outline-none focus:ring-4">
+      {type === "add" ? <IconCross /> : null}
+      {type === "see" ? <IconEye /> : null}
+      {title}
+    </button>
+  )
+}
