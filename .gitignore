@@ -5,6 +5,7 @@ dist/
 
 # dependencies
 node_modules/
+package-lock.json
 
 # logs
 npm-debug.log*
@@ -12,6 +13,9 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# prisma
+prisma/migrations/
+prisma/dev.db
 
 # environment variables
 .env
@@ -19,3 +23,7 @@ pnpm-debug.log*
 
 # macOS-specific files
 .DS_Store
+
+# editor-specific files
+.vscode/
+.idea/
