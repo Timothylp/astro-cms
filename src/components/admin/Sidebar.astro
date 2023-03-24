@@ -14,7 +14,9 @@ import IconSettings from "./icons/IconSettings.astro";
       <li>
         <a
           href="/admin/pages"
-          class={`group flex items-center rounded-lg p-2 text-base font-normal text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700 ${Astro.url.pathname.includes('/admin/pages') ? "bg-gray-100" : ""}`}>
+          class={`group flex items-center rounded-lg p-2 text-base font-normal text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700 ${
+            Astro.url.pathname.includes("/admin/pages") ? "bg-gray-100" : ""
+          }`}>
           <IconPage />
           <span class="ml-3">Pages</span>
         </a>
@@ -25,16 +27,16 @@ import IconSettings from "./icons/IconSettings.astro";
         <a
           href="#"
           class="group flex items-center rounded-lg p-2 text-base font-normal text-gray-900 transition duration-75 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700">
-          <IconDocs />
-          <span class="ml-3">Documentation</span>
+          <IconSection />
+          <span class="ml-3">Sections</span>
         </a>
       </li>
       <li>
         <a
           href="#"
           class="group flex items-center rounded-lg p-2 text-base font-normal text-gray-900 transition duration-75 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700">
-          <IconSection />
-          <span class="ml-3">Sections</span>
+          <IconDocs />
+          <span class="ml-3">Documentation</span>
         </a>
       </li>
     </ul>
