@@ -26,10 +26,10 @@ model PostSection {
   id         Int          @id @default(autoincrement())
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
-  section    Section?     @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  sectionId  Int?
-  post       Post?        @relation(fields: [postId], references: [id], onDelete: Cascade)
-  postId     Int?
+  section    Section     @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  sectionId  Int
+  post       Post       @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId     Int
   values FieldValue[]
 }
 
@@ -59,10 +59,10 @@ model FieldValue {
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
   value     String
-  field     Field?       @relation(fields: [fieldId], references: [id], onDelete: Cascade)
-  fieldId   Int?
-  post      PostSection? @relation(fields: [postSectionId], references: [id], onDelete: Cascade)
-  postSectionId    Int?
+  field     Field       @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  fieldId   Int
+  post      PostSection @relation(fields: [postSectionId], references: [id], onDelete: Cascade)
+  postSectionId    Int
 }
 
 model User {

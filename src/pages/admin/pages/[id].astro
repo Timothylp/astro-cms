@@ -1,5 +1,8 @@
 ---
+import type { PostSection } from "@prisma/client";
 import Button from "../../../components/admin/Button.astro";
+import IconCross from "../../../components/admin/icons/IconCross.astro";
+import IconDelete from "../../../components/admin/icons/IconDelete.astro";
 import { prisma } from "../../../db";
 import AdminLayout from "../../../layouts/AdminLayout.astro";
 
@@ -8,21 +11,52 @@ if (!id) return Astro.redirect("/admin/pages");
 
 let title = "Création d'une page";
 let page = null;
+let displaySections: any[] = []; // any temporaire
 
-if (id != "new") {
+// Récupération des données de la page si elle existe
+if (id !== "new") {
   page = await prisma.post.findUnique({
     where: {
       id: parseInt(id),
     },
   });
   if (!page) return Astro.redirect("/admin/pages");
+
   title = `Edition de la page ${page.title}`;
+  const postSections: PostSection[] = await prisma.postSection.findMany({
+    where: {
+      postId: page.id,
+    },
+  });
+
+  await Promise.all(
+    postSections.map(async (postSection) => {
+      const section = await prisma.section.findUnique({
+        where: { id: postSection.sectionId },
+      });
+
+      const fields = await prisma.field.findMany({
+        where: {
+          sectionId: section?.id,
+        },
+      });
+
+      displaySections.push({
+        id: postSection.id,
+        sectionId: section?.id,
+        title: section?.title,
+        fields,
+      });
+    })
+  );
 }
 
+// Traitement du formulaire
 if (Astro.request.method === "POST") {
   const data = await Astro.request.formData();
   const title = data.get("title") as string;
 
+  // Création ou édition de la page
   if (!page) {
     await prisma.post.create({
       data: {
@@ -47,7 +81,9 @@ if (Astro.request.method === "POST") {
 
 <AdminLayout title={`${title}`}>
   <header class="p-3 sm:p-5">
-    <a href="/admin/pages" class="group font-medium text-primary-600 dark:text-primary-500">← <span class="group-hover:underline">Retour</span></a>
+    <a href="/admin/pages" class="group font-medium text-primary-600 dark:text-primary-500"
+      >← <span class="group-hover:underline">Retour</span></a
+    >
     <div class="flex items-center justify-between">
       <h1 class="mb-2 text-4xl font-bold tracking-tight text-gray-900 dark:text-white">{title}</h1>
       {page && <Button title="Voir la page" link={`/${page.slug}/`} type="see" />}
@@ -67,6 +103,71 @@ if (Astro.request.method === "POST") {
             required
           />
           {page && <small class="mt-2 text-sm text-gray-500 dark:text-gray-400">slug : {page.slug}</small>}
+        </div>
+        <div class="mb-6">
+          <p class="mb-2 block text-sm font-medium text-gray-900 dark:text-white">Liste des sections</p>
+          <div id="sections">
+            {
+              displaySections &&
+                displaySections.map((displaySection, index) => (
+                  <>
+                    <hr />
+                    <div class="my-2 flex items-center justify-between">
+                      <p class="block font-medium text-gray-900 dark:text-white">{displaySection.title}</p>
+                      <button
+                        type="button"
+                        class="flex items-center justify-center rounded-lg border border-red-600/20 bg-red-400/10 p-2 text-red-400 transition-all duration-300 ease-in-out hover:border-red-600 hover:bg-red-400/20 hover:text-red-600">
+                        <div class="h-5 w-5">
+                          <IconDelete />
+                        </div>
+                      </button>
+                    </div>
+
+                    <div
+                      id={`section_${index}`}
+                      class="border-gray-300 mb-2 flex flex-col gap-2 rounded-lg border p-2">
+                      <input id="id" type="hidden" name={`sections[${index}][id]`} value={displaySection.id} />
+                      <input id="sectionId" type="hidden" name={`sections[${index}][sectionId]`} value={displaySection.sectionId} />
+                      {displaySection.fields.map((field) => (
+                        <div class="flex flex-col">
+                          <label class="block text-sm font-medium text-gray-900 dark:text-white" for={field.title}>
+                            {field.title}
+                          </label>
+                          {field.type === "textarea" && (
+                            <textarea
+                              class="focus:border-primary-500 focus:ring-primary-500 dark:focus:border-primary-500 dark:focus:ring-primary-500 block w-full rounded-lg border border-gray-300 bg-gray-50 p-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                              id={field.title}
+                              name={`sections[${index}][fields][${field.id}]`}
+                              placeholder={field.title}
+                              value={field.value}
+                              rows="4"
+                              required
+                            />
+                          )}
+                          {field.type === "text" && (
+                            <input
+                              class="focus:border-primary-500 focus:ring-primary-500 dark:focus:border-primary-500 dark:focus:ring-primary-500 block w-full rounded-lg border border-gray-300 bg-gray-50 p-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                              type="text"
+                              id={field.title}
+                              name={`sections[${index}][fields][${field.id}]`}
+                              placeholder={field.title}
+                              value={field.value}
+                              required
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ))
+            }
+          </div>
+          <button
+            id="addField"
+            type="button"
+            class="flex w-full items-center justify-center border border-primary-600/20 bg-primary-400/10 p-2 text-primary-400 transition-all duration-300 ease-in-out hover:border-primary-600 hover:bg-primary-400/20 hover:text-primary-600">
+            <div class="h-6 w-6"><IconCross /></div>
+          </button>
         </div>
         <Button title="Enregistrer" type="submit" />
       </form>

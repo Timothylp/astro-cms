@@ -11,6 +11,7 @@ type NewField = Omit<Field, "createdAt" | "updatedAt" | "sectionId">;
 const { id } = Astro.params;
 if (!id) return Astro.redirect("/admin/sections");
 
+// Préparation des données
 let title = "Création d'une section";
 let section: Section | null = null;
 let fields: Field[] = [
@@ -25,7 +26,8 @@ let fields: Field[] = [
   },
 ];
 
-if (id != "new") {
+// Récupération des données de la section si elle existe
+if (id !== "new") {
   section = await prisma.section.findUnique({
     where: {
       id: parseInt(id),
@@ -43,10 +45,12 @@ if (id != "new") {
   fields.push(...sectionFields);
 }
 
+// Traitement du formulaire
 if (Astro.request.method === "POST") {
   const data = await Astro.request.formData();
   const title = data.get("title") as string;
 
+  // Préparation des nouveaux champs à créer ou à mettre à jour
   let i = 1;
   let newFields: NewField[] = [];
   while (data.get("fields[" + i + "][id]")) {
@@ -60,6 +64,7 @@ if (Astro.request.method === "POST") {
     i++;
   }
 
+  // Création de la section si elle n'existe pas
   if (!section) {
     section = await prisma.section.create({
       data: {
@@ -98,7 +103,7 @@ if (Astro.request.method === "POST") {
     });
 
     // Préparation des transactions à effectuer pour mettre à jour les champs
-    const transactions: Promise<any>[] = [];
+    const transactions: any[] = [];
 
     // Suppression des champs qui n'existent plus
     currentFields.forEach(async (currentField) => {
@@ -230,9 +235,9 @@ if (Astro.request.method === "POST") {
           <button
             id="addField"
             type="button"
-            class="flex w-full items-center justify-center border border-primary-600/20 bg-primary-400/10 p-2 text-primary-400 transition-all duration-300 ease-in-out hover:border-primary-600 hover:bg-primary-400/20 hover:text-primary-600"
-            ><div class="h-6 w-6"><IconCross /></div></button
-          >
+            class="flex w-full items-center justify-center border border-primary-600/20 bg-primary-400/10 p-2 text-primary-400 transition-all duration-300 ease-in-out hover:border-primary-600 hover:bg-primary-400/20 hover:text-primary-600">
+            <div class="h-6 w-6"><IconCross /></div>
+          </button>
         </div>
         <Button title="Enregistrer" type="submit" />
       </form>
