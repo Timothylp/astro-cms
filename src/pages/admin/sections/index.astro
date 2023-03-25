@@ -2,13 +2,14 @@
 import { prisma } from "../../../db";
 import AdminLayout from "../../../layouts/AdminLayout.astro";
 import AdvancedTable from "../../../components/admin/AdvancedTable.astro";
+import type { Section } from "@prisma/client";
 
-const sections = await prisma.section.findMany();
+const sections: Section[] = await prisma.section.findMany();
 
 const fields = [
   { name: "title", label: "Titre" },
   { name: "createdAt", label: "Créé le" },
-  { name: "updatedAt", label: "Modifié le" },
+  { name: "updatedAt", label: "Modifié le" }
 ];
 
 const items = sections.map((section) => {
@@ -26,7 +27,7 @@ const items = sections.map((section) => {
       {
         name: "updatedAt",
         value: section.updatedAt.toLocaleString(),
-      },
+      }
     ],
   };
 });

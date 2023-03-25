@@ -1,14 +1,29 @@
 ---
+import type { Field, Section } from "@prisma/client";
 import Button from "../../../components/admin/Button.astro";
 import IconCross from "../../../components/admin/icons/IconCross.astro";
+import IconDelete from "../../../components/admin/icons/IconDelete.astro";
 import { prisma } from "../../../db";
 import AdminLayout from "../../../layouts/AdminLayout.astro";
+
+type NewField = Omit<Field, "createdAt" | "updatedAt" | "sectionId">;
 
 const { id } = Astro.params;
 if (!id) return Astro.redirect("/admin/sections");
 
 let title = "Création d'une section";
-let section = null;
+let section: Section | null = null;
+let fields: Field[] = [
+  {
+    id: 0,
+    key: "",
+    title: "",
+    type: "text",
+    sectionId: 0,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+];
 
 if (id != "new") {
   section = await prisma.section.findUnique({
@@ -18,18 +33,53 @@ if (id != "new") {
   });
   if (!section) return Astro.redirect("/admin/sections");
   title = `Edition de la section ${section.title}`;
+
+  const sectionFields = await prisma.field.findMany({
+    where: {
+      sectionId: section.id,
+    },
+  });
+
+  fields.push(...sectionFields);
 }
 
 if (Astro.request.method === "POST") {
   const data = await Astro.request.formData();
   const title = data.get("title") as string;
-  console.log(fields);
+
+  let i = 1;
+  let newFields: NewField[] = [];
+  while (data.get("fields[" + i + "][id]")) {
+    const id = data.get("fields[" + i + "][id]") as string;
+    newFields.push({
+      id: parseInt(id),
+      key: data.get("fields[" + i + "][key]") as string,
+      title: data.get("fields[" + i + "][title]") as string,
+      type: data.get("fields[" + i + "][type]") as string,
+    });
+    i++;
+  }
 
   if (!section) {
-    await prisma.section.create({
+    section = await prisma.section.create({
       data: {
         title,
       },
+    });
+
+    newFields.forEach(async (newField) => {
+      await prisma.field.create({
+        data: {
+          key: newField.key,
+          title: newField.title,
+          type: newField.type,
+          section: {
+            connect: {
+              id: section?.id,
+            },
+          },
+        },
+      });
     });
   } else {
     await prisma.section.update({
@@ -40,6 +90,65 @@ if (Astro.request.method === "POST") {
         title,
       },
     });
+
+    const currentFields: Field[] = await prisma.field.findMany({
+      where: {
+        sectionId: section.id,
+      },
+    });
+
+    // Préparation des transactions à effectuer pour mettre à jour les champs
+    const transactions: Promise<any>[] = [];
+
+    // Suppression des champs qui n'existent plus
+    currentFields.forEach(async (currentField) => {
+      const newField = newFields.find((f) => f.id === currentField.id);
+      if (!newField) {
+        transactions.push(
+          prisma.field.delete({
+            where: {
+              id: currentField.id,
+            },
+          })
+        );
+      }
+    });
+
+    // Mise à jour des champs existants et création des nouveaux champs
+    newFields.forEach(async (newField) => {
+      const currentField = currentFields.find((f) => f.id === newField.id);
+      if (currentField) {
+        transactions.push(
+          prisma.field.update({
+            where: {
+              id: currentField.id,
+            },
+            data: {
+              key: newField.key,
+              title: newField.title,
+              type: newField.type,
+            },
+          })
+        );
+      } else {
+        transactions.push(
+          prisma.field.create({
+            data: {
+              key: newField.key,
+              title: newField.title,
+              type: newField.type,
+              section: {
+                connect: {
+                  id: section?.id,
+                },
+              },
+            },
+          })
+        );
+      }
+    });
+
+    await prisma.$transaction(transactions);
   }
 
   return Astro.redirect("/admin/sections");
@@ -48,7 +157,9 @@ if (Astro.request.method === "POST") {
 
 <AdminLayout title={`${title}`}>
   <header class="p-3 sm:p-5">
-    <p class="font-medium text-primary-600 dark:text-primary-500">← <a href="/admin/sections" class="hover:underline">Retour</a></p>
+    <a href="/admin/sections" class="group font-medium text-primary-600 dark:text-primary-500"
+      >← <span class="group-hover:underline">Retour</span></a
+    >
     <div class="flex items-center justify-between">
       <h1 class="mb-2 text-4xl font-bold tracking-tight text-gray-900 dark:text-white">{title}</h1>
     </div>
@@ -68,8 +179,54 @@ if (Astro.request.method === "POST") {
           />
         </div>
         <div class="mb-6">
-          <label for="email" class="mb-2 block text-sm font-medium text-gray-900 dark:text-white">Liste des champs</label>
-          <div id="fields"></div>
+          <p class="mb-2 block text-sm font-medium text-gray-900 dark:text-white">Liste des champs</p>
+          <div id="fields">
+            {
+              fields &&
+                fields.map((field, index) => (
+                  <div id={`field_${index}`} class="mb-2 flex items-center gap-2 first:hidden">
+                    <input id="id" type="hidden" name={`fields[${index}][id]`} value={field.id} />
+                    <select
+                      id="type"
+                      class="focus:border-primary-500 focus:ring-primary-500 dark:focus:border-primary-500 dark:focus:ring-primary-500 flex-1 rounded-lg border border-gray-300 bg-gray-50 p-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                      name={`fields[${index}][type]`}
+                      required={index !== 0}>
+                      <option value="text" selected={field.type === "text"}>
+                        Texte
+                      </option>
+                      <option value="textarea" selected={field.type === "textarea"}>
+                        Texte long
+                      </option>
+                    </select>
+                    <input
+                      id="key"
+                      class="focus:border-primary-500 focus:ring-primary-500 dark:focus:border-primary-500 dark:focus:ring-primary-500 flex-1 rounded-lg border border-gray-300 bg-gray-50 p-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                      type="text"
+                      name={`fields[${index}][key]`}
+                      placeholder="Clé du champ"
+                      value={field.key}
+                      required={index !== 0}
+                    />
+                    <input
+                      id="title"
+                      class="focus:border-primary-500 focus:ring-primary-500 dark:focus:border-primary-500 dark:focus:ring-primary-500 flex-1 rounded-lg border border-gray-300 bg-gray-50 p-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                      type="text"
+                      name={`fields[${index}][title]`}
+                      placeholder="Titre du champ"
+                      value={field.title}
+                      required={index !== 0}
+                    />
+                    <button
+                      type="button"
+                      class="flex items-center justify-center rounded-lg border border-red-600/20 bg-red-400/10 p-2 text-red-400 transition-all duration-300 ease-in-out hover:border-red-600 hover:bg-red-400/20 hover:text-red-600">
+                      <div class="h-5 w-5">
+                        <IconDelete />
+                      </div>
+                    </button>
+                  </div>
+                ))
+            }
+          </div>
           <button
             id="addField"
             type="button"
@@ -86,107 +243,41 @@ if (Astro.request.method === "POST") {
     const fields = document.getElementById("fields");
     const addField = document.getElementById("addField");
 
-    const addFieldToForm = () => {
-      const fieldContainer = document.createElement("div");
-      fieldContainer.classList.add("flex", "items-center", "mb-2", "gap-2");
-
-      const fieldKey = document.createElement("input");
-      fieldKey.classList.add(
-        "flex-1",
-        "rounded-lg",
-        "border",
-        "border-gray-300",
-        "bg-gray-50",
-        "p-2",
-        "text-lg",
-        "text-gray-900",
-        "focus:border-primary-500",
-        "focus:ring-primary-500",
-        "dark:border-gray-600",
-        "dark:bg-gray-700",
-        "dark:text-white",
-        "dark:placeholder-gray-400",
-        "dark:focus:border-primary-500",
-        "dark:focus:ring-primary-500"
-      );
-      fieldKey.setAttribute("type", "text");
-      fieldKey.setAttribute("name", "fields[" + fields?.children.length + "][key]");
-      fieldKey.setAttribute("placeholder", "Identifiant du champ");
-
-      const fieldInput = document.createElement("input");
-      fieldInput.classList.add(
-        "flex-1",
-        "rounded-lg",
-        "border",
-        "border-gray-300",
-        "bg-gray-50",
-        "p-2",
-        "text-lg",
-        "text-gray-900",
-        "focus:border-primary-500",
-        "focus:ring-primary-500",
-        "dark:border-gray-600",
-        "dark:bg-gray-700",
-        "dark:text-white",
-        "dark:placeholder-gray-400",
-        "dark:focus:border-primary-500",
-        "dark:focus:ring-primary-500",
-      );
-      fieldInput.setAttribute("type", "text");
-      fieldInput.setAttribute("name", "fields[" + fields?.children.length + "][name]");
-      fieldInput.setAttribute("placeholder", "Nom du champ");
-
-      const fieldType = document.createElement("select");
-      fieldType.classList.add(
-        "flex-1",
-        "rounded-lg",
-        "border",
-        "border-gray-300",
-        "bg-gray-50",
-        "p-2",
-        "text-lg",
-        "text-gray-900",
-        "focus:border-primary-500",
-        "focus:ring-primary-500",
-        "dark:border-gray-600",
-        "dark:bg-gray-700",
-        "dark:text-white",
-        "dark:placeholder-gray-400",
-        "dark:focus:border-primary-500",
-        "dark:focus:ring-primary-500"
-      );
-      fieldType.setAttribute("type", "text");
-      fieldType.setAttribute("name", "fields[" + fields?.children.length + "][type]");
-      fieldType.options.add(new Option("Texte", "text"));
-      fieldType.options.add(new Option("Paragraphe", "textarea"));
-
-      const fieldRemove = document.createElement("button");
-      fieldRemove.classList.add(
-        "flex",
-        "items-center",
-        "justify-center",
-        "border",
-        "border-red-600/20",
-        "bg-red-400/10",
-        "p-2",
-        "text-red-400",
-        "transition-all",
-        "duration-300",
-        "ease-in-out",
-        "hover:border-red-600",
-        "hover:bg-red-400/20",
-        "hover:text-red-600"
-      );
-      fieldRemove.innerHTML = '<div class="h-6 w-6"><IconCross /></div>';
-      fieldRemove.addEventListener("click", () => {
-        fieldContainer.remove();
+    fields?.querySelectorAll("button").forEach((button) => {
+      button.addEventListener("click", () => {
+        button.parentElement?.remove();
       });
+    });
 
-      fieldContainer.appendChild(fieldType);
-      fieldContainer.appendChild(fieldKey);
-      fieldContainer.appendChild(fieldInput);
-      fieldContainer.appendChild(fieldRemove);
-      fields?.appendChild(fieldContainer);
+    const addFieldToForm = () => {
+      const fieldContainer = fields?.firstElementChild?.cloneNode(true) as HTMLElement;
+      const index = fields?.childElementCount;
+
+      if (fieldContainer) {
+        fieldContainer.setAttribute("id", `field_${index}`);
+
+        const id = fieldContainer.querySelector(`#id`) as HTMLSelectElement;
+        id.setAttribute("name", `fields[${index}][id]`);
+        id.setAttribute("value", "0");
+
+        const type = fieldContainer.querySelector(`#type`) as HTMLSelectElement;
+        type.setAttribute("name", `fields[${index}][type]`);
+        type.setAttribute("value", `text`);
+
+        const key = fieldContainer.querySelector(`#key`) as HTMLInputElement;
+        key.setAttribute("name", `fields[${index}][key]`);
+        key.setAttribute("value", ``);
+
+        const title = fieldContainer.querySelector(`#title`) as HTMLInputElement;
+        title.setAttribute("name", `fields[${index}][title]`);
+        title.setAttribute("value", ``);
+
+        fieldContainer.querySelector("button")?.addEventListener("click", () => {
+          fieldContainer.remove();
+        });
+
+        fields?.appendChild(fieldContainer);
+      }
     };
 
     addField?.addEventListener("click", () => {

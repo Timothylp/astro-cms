@@ -1,0 +1,37 @@
+---
+import IconDelete from "../icons/IconDelete.astro";
+
+const { index, type, key, title } = Astro.props;
+---
+<div class="mb-2 flex items-center gap-2">
+  <select
+    class="flex-1 rounded-lg border border-gray-300 bg-gray-50 p-2 text-lg text-gray-900 focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:focus:border-primary-500 dark:focus:ring-primary-500"
+    name={`fields[${index}][type]`}
+    required>
+    <option value="text" selected={type === "text"}> Texte</option>
+    <option value="textarea" selected={type === "textarea"}> Texte long</option>
+  </select>
+  <input
+    class="flex-1 rounded-lg border border-gray-300 bg-gray-50 p-2 text-lg text-gray-900 focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:focus:border-primary-500 dark:focus:ring-primary-500"
+    type="text"
+    name={`fields[${index}][key]`}
+    placeholder="Clé du champ"
+    value={key}
+    required
+  />
+  <input
+    class="flex-1 rounded-lg border border-gray-300 bg-gray-50 p-2 text-lg text-gray-900 focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:focus:border-primary-500 dark:focus:ring-primary-500"
+    type="text"
+    name={`fields[${index}][title]`}
+    placeholder="Titre du champ"
+    value={title}
+    required
+  />
+  <button
+    type="button"
+    class="flex items-center justify-center border border-red-600/20 bg-red-400/10 p-2 text-red-400 transition-all duration-300 ease-in-out hover:border-red-600 hover:bg-red-400/20 hover:text-red-600">
+    <div class="h-6 w-6">
+      <IconDelete />
+    </div>
+  </button>
+</div>
