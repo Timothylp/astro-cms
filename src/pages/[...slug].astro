@@ -18,8 +18,29 @@ if(!slug) return Astro.redirect("/404");
 
 const page = await prisma.post.findUnique({ where: { slug } });
 if(!page) return Astro.redirect("/404");
+
+const postSections = await prisma.postSection.findMany({ where: { postId: page.id } });
+
+const sections = await Promise.all(postSections.map(async postSection => {
+  const section = await prisma.section.findUnique({ where: { id: postSection.sectionId } });
+  const fields = await prisma.field.findMany({ where: { sectionId: section?.id } });
+  const fieldValues = await prisma.fieldValue.findMany({ where: { postSectionId: postSection.id } });
+
+  return {
+    ...section,
+    fields,
+    fieldValues
+  }
+}));
 ---
 
 <FrontLayout title={page.title}>
   <h2>{page.title}</h2>
+  <div>
+    {sections[0]?.fieldValues.map((fieldValue) => (
+      <div>
+        <p>{fieldValue.value}</p>
+      </div>
+    ))}
+  </div>
 </FrontLayout>

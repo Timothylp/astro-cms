@@ -41,11 +41,18 @@ if (id !== "new") {
         },
       });
 
+      const fieldValues = await prisma.fieldValue.findMany({
+        where: {
+          postSectionId: postSection.id,
+        },
+      });
+
       displaySections.push({
         id: postSection.id,
         sectionId: section?.id,
         title: section?.title,
         fields,
+        fieldValues,
       });
     })
   );
@@ -73,6 +80,76 @@ if (Astro.request.method === "POST") {
         title,
       },
     });
+
+    const newSections = [];
+    const transactions: any[] = []; // any temporaire
+
+    let i = 0;
+    while (data.get("sections[" + i + "][id]")) {
+      const postSectionId = data.get("sections[" + i + "][id]") as string;
+      const sectionId = data.get("sections[" + i + "][sectionId]") as string;
+
+      const sectionFields = await prisma.field.findMany({
+        where: {
+          sectionId: parseInt(sectionId),
+        },
+      });
+
+      await Promise.all(
+        sectionFields.map(async (sectionField) => {
+          const value = data.get("sections[" + i + "][fields][" + sectionField.id + "]") as string;
+
+          const fieldValue = await prisma.fieldValue.findFirst({
+            where: {
+              field: {
+                id: sectionField.id,
+              },
+              post: {
+                id: parseInt(postSectionId),
+              },
+            },
+          });
+
+          newSections.push({
+            id: postSectionId,
+            sectionId: sectionId,
+            fieldId: sectionField.id,
+            fieldValue: fieldValue,
+            value: value,
+          });
+        })
+      );
+      i++;
+    }
+
+    console.log(newSections);
+
+    newSections.map((newSection) => {
+      if (newSection.fieldValue) {
+        transactions.push(
+          prisma.fieldValue.update({
+            where: {
+              id: newSection.fieldValue.id,
+            },
+            data: {
+              value: newSection.value,
+            },
+          })
+        );
+      } else {
+        transactions.push(
+          prisma.fieldValue.create({
+            data: {
+              value: newSection.value,
+              fieldId: newSection.fieldId,
+              postSectionId: parseInt(newSection.id),
+            },
+          })
+        );
+      }
+    });
+
+    await prisma.$transaction(transactions);
   }
 
   return Astro.redirect("/admin/pages");
@@ -123,12 +200,10 @@ if (Astro.request.method === "POST") {
                       </button>
                     </div>
 
-                    <div
-                      id={`section_${index}`}
-                      class="border-gray-300 mb-2 flex flex-col gap-2 rounded-lg border p-2">
+                    <div id={`section_${index}`} class="mb-2 flex flex-col gap-2 rounded-lg border border-gray-300 p-2">
                       <input id="id" type="hidden" name={`sections[${index}][id]`} value={displaySection.id} />
                       <input id="sectionId" type="hidden" name={`sections[${index}][sectionId]`} value={displaySection.sectionId} />
-                      {displaySection.fields.map((field) => (
+                      {displaySection.fields.map((field, indexField: number) => (
                         <div class="flex flex-col">
                           <label class="block text-sm font-medium text-gray-900 dark:text-white" for={field.title}>
                             {field.title}
@@ -139,10 +214,10 @@ if (Astro.request.method === "POST") {
                               id={field.title}
                               name={`sections[${index}][fields][${field.id}]`}
                               placeholder={field.title}
-                              value={field.value}
                               rows="4"
                               required
-                            />
+                              set:text={displaySection?.fieldValues[indexField]?.value}
+                              />
                           )}
                           {field.type === "text" && (
                             <input
@@ -151,7 +226,7 @@ if (Astro.request.method === "POST") {
                               id={field.title}
                               name={`sections[${index}][fields][${field.id}]`}
                               placeholder={field.title}
-                              value={field.value}
+                              value={displaySection?.fieldValues[indexField]?.value}
                               required
                             />
                           )}
